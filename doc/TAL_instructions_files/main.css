@@ -1,0 +1,124 @@
+body{
+  background: url("images/lgrey011.jpg") repeat;
+	width: 800px;
+}
+
+div {
+  margin: 0;
+	padding: 0;
+}
+
+.banner {
+	background: #6699CC;
+	margin: 0;
+	padding: 0 0 0 5px; 
+	width: 800px;
+}
+
+.banner h1 {
+	font: 2em bold;
+	padding: 0;
+	margin: 0;
+}
+
+.banner p {
+	font: 1.2em bold;
+	padding: 0;
+	margin: 0;
+} 
+
+.navbar ul {
+	width: 800px;
+	font-family: arial;
+	font-size: 1.2em;
+	height: 2.2em;
+	padding: 0 ;
+	margin: 0 0 1px 0;
+}
+
+.navbar ul li{
+	display: block;
+	float: left;
+	height: 2em;
+	padding: 0;
+	margin: 4px 0 0 0;
+	vertical-align: middle;
+	text-align: center;
+}
+.navbar ul li a {
+	display: block;
+	float: left;
+	height: 2em;
+	padding: 0 10px 0 10px;
+	margin: 4px 0 0 0;
+	vertical-align: middle;
+}
+.navbar a:hover {
+height: 2em;
+	margin: -4px 0 -4px 0;
+	padding: 6px 10px 0 10px;
+	background-color: #212481;
+	color: #cdcb11;
+}
+
+.courseinfo {
+	width: 800px;
+	margin: 0 0 1px 0;
+}
+
+.courseinfo #col1 {
+  width: 50%;
+	float: left;
+}
+
+.courseinfo #col2 {
+  width: 50%;
+	float: left;
+}
+
+.announce{
+  width: 100%;
+  margin: 0;
+	padding: 0 0 3em 0;
+}
+
+.announce h2 {
+	color: #990066;
+	margin: 0 0 3px 0;
+}
+
+.announce p {
+  margin:0;
+	padding: 0 0 0 15px;
+}
+
+.content h2 {
+  margin: 0;
+	padding: 5px 0 5px 0;
+}
+
+.content pre {
+ font-family: monospace;
+}
+
+.content table {
+  empty-cells: show;
+  border: 1px solid #888888;
+}
+
+.content td,.content th {
+ border: 1px solid #888888;
+ margin: 0;
+ padding: 0 0 0 2px;
+ }
+ 
+.footer p {
+ width: 800px;
+ margin: 0;
+ padding:0;
+}
+
+.footer h4 {
+ margin: 0;
+ padding: .3em 0 .3em 0;
+}

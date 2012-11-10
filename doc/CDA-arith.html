@@ -1,0 +1,1075 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Organization of Computer Systems: Computer Arithmetic</title>
+</head><body link="#0000ee" text="#000000" bgcolor="#ffffff">
+
+<hr>
+<blockquote>
+<h2>Organization of Computer Systems: <br> 
+§ 3: Computer Arithmetic </h2>
+<h4>Instructor: <a href="mailto:mssz@cise.ufl.edu"> M.S. Schmalz</a> </h4>
+</blockquote>
+<hr><p>
+</p><blockquote>
+
+<a name="Sec3.0"></a>
+<p><a href="http://www.cise.ufl.edu/%7Emssz/CompOrg/PatHen-Readings.html#ExSec3.0"><b>Reading Assignments and Exercises</b></a> 
+
+</p><p align="JUSTIFY">This section is organized as follows:
+
+</p><p>        </p><ul>
+            3.1. Arithmetic and Logic Operations <br>
+            3.2. Arithmetic Logic Units and the MIPS ALU<br>
+            3.3. Boolean Multiplication and Division <br>
+            3.4. Floating Point Arithmetic       <br>
+            3.5. Floating Point in MIPS  <br>
+        </ul><p>
+
+</p><p align="JUSTIFY">Information contained herein was compiled from a
+variety of text- and Web-based sources, is intended as a teaching aid
+only (to be used in conjunction with the <a href="http://www.cise.ufl.edu/%7Emssz/CompOrg/req-text.html">required text</a>, and is not to be used for any
+commercial purpose.  Particular thanks is given to Dr. Enrique Mafla
+for his permission to use selected illustrations from his course notes
+in these Web pages.
+
+</p><p align="JUSTIFY">In order to secure your understanding of the topics
+in this section, students should review the discussion of number
+representation in <a href="http://www.cise.ufl.edu/%7Emssz/CompOrg/CDA-lang.html#Sec2.4">Section 2.4</a>,
+especially twos complement.
+
+<a name="Sec3.1"></a>
+</p><h3>3.1. Arithmetic and Logic Operations</h3>
+
+<p><a href="http://www.cise.ufl.edu/%7Emssz/CompOrg/PatHen-Readings.html#ExSec3.1"><b>Reading Assignments and Exercises</b></a> 
+
+</p><p align="JUSTIFY">The ALU is the core of the computer - it performs
+arithmetic and logic operations on data that not only realize the
+goals of various applications (e.g., scientific and engineering
+programs), but also manipulate addresses (e.g., pointer arithmetic).
+In this section, we will overview algorithms used for the basic
+arithmetic and logical operations.  A key assumption is that twos
+complement representation will be employed, unless otherwise noted.
+
+</p><h4>3.1.1. Boolean Addition</h4>
+
+<p align="JUSTIFY">When adding two numbers, if the sum of the digits
+in a given position equals or exceeds the modulus, then a <i>carry</i>
+is propagated.  For example, in Boolean addition, if two ones are added,
+the sum is obviously two (base 10), which exceeds the modulus of 2 for
+Boolean numbers (<b>B</b> = <b>Z</b><sub>2</sub> = {0,1}, the integers
+modulo 2).  Thus, we record a zero for the sum and propagate a carry
+valued at one into the next more significant digit, as shown in 
+Figure 3.1.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_025.gif"><br><br>
+<b>Figure 3.1.</b> Example of Boolean addition with carry propagation,
+adapted from [Maf01].</p>
+
+<h4>3.1.2. Boolean Subtraction</h4>
+
+<p align="JUSTIFY">When subtracting two numbers, two alternatives
+present themselves.  First, one can formulate a subtraction algorithm,
+which is distinct from addition.  Second, one can negate the
+subtrahend (i.e., in <i>a - b</i>, the subtrahend is <i>b</i>) then
+perform addition.  Since we already know how to perform addition as
+well as twos complement negation, the second alternative is more
+practical.  Figure 3.2 illustrates both processes, using the decimal
+subtraction 12 - 5 = 7 as an example.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_024.gif"><br><br>
+<b>Figure 3.2.</b> Example of Boolean subtraction using (a) unsigned
+binary representation, and (b) addition with twos complement negation -
+adapted from [Maf01].</p>
+
+<p align="JUSTIFY">Just as we have a carry in addition, the subtraction
+of Boolean numbers uses a <i>borrow</i>.  For example, in Figure 3.2a,
+in the first (least significant) digit position, the difference 0 - 1
+in the one's place is realized by borrowing a one from the two's place
+(next more significant digit).  The borrow is propagated upward
+(toward the most significant digit) until it is zeroed (i.e., until we
+encounter a difference of 1 - 0).
+
+</p><h4>3.1.3. Overflow</h4>
+
+<p align="JUSTIFY">Overflow occurs when there are insufficient bits in a
+binary number representation to portray the result of an arithmetic
+operation.  Overflow occurs because computer arithmetic is not closed
+with respect to addition, subtraction, multiplication, or division.
+Overflow <i>cannot</i> occur in addition (subtraction), if the
+operands have different (resp. identical) signs.  
+
+</p><p align="JUSTIFY">To detect and compensate for overflow, one needs n+1
+bits if an n-bit number representation is employed.  For example, in
+32-bit arithmetic, 33 bits are required to detect or compensate for
+overflow.  This can be implemented in addition (subtraction) by
+letting a carry (borrow) occur into (from) the sign bit.  To make a
+pictorial example of convenient size, Figure 3.3 illustrates the
+four possible sign combinations of differencing 7 and 6 using a
+number representation that is four bits long (i.e., can represent
+integers in the interval [-8,7]).
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_019.gif"><br><br>
+<b>Figure 3.3.</b> Example of overflow in Boolean arithmetic,
+adapted from [Maf01].</p>
+
+<h4>3.1.4. MIPS Overflow Handling</h4>
+
+<p align="JUSTIFY">MIPS raises an <i>exception</i> when overflow occurs.
+Exceptions (or interrupts) act like procedure calls.  The register
+<code>$epc</code> stores the address of the instruction that
+<i>caused</i> the interrupt, and the instruction
+
+</p><p align="CENTER"><code>mfc <b>register</b>, $epc</code> </p>
+
+<p align="JUSTIFY">moves the contents of <code>$epc</code> to
+<i>register</i>.  For example, <i>register</i> could be
+<code>$t1</code>.  This is an efficient approach, since no conditional
+branch is needed to test for overflow.
+
+</p><p align="JUSTIFY">Two's complement arithmetic operations
+(<code>add</code>, <code>addi</code>, and <code>sub</code>
+instructions) raise exceptions on overflow.  In contrast,
+unsigned arithmetic (<code>addu</code> and <code>addiu</code>)
+instructions do not raise an exception on overflow, since they
+are used for arithmetic operations on addresses (recall our
+discussion of pointer arithmetic in Section 2.6).  In terms
+of high-level languages, C ignores overflows (always uses
+<code>addu</code>, <code>addiu</code>, and <code>subu</code>),
+while FORTRAN uses the appropriate instruction to detect overflow.
+Figure 3.4 illustrates the use of conditional branch on overflow
+for signed and unsigned addition operations.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_008.gif"><br><br>
+<b>Figure 3.4.</b> Example of overflow in Boolean arithmetic,
+adapted from [Maf01].</p>
+
+<h4>3.1.5. Logical Operations</h4><p align="JUSTIFY">Logical operations apply to fields of bits within a
+32-bit word, such as bytes or bit fields (in C, as discussed in the
+next paragraph).  These operations include shift-left and shift-right
+operations (<code>sll</code> and <code>srl</code>), as well as bitwise
+<i>and</i>, <i>or</i> (<code>and</code>, <code>andi</code>,
+<code>or</code>, <code>ori</code>).  As we saw in Section 2, bitwise
+operations treat an operand as a vector of bits and operate on each
+bit position.
+
+</p><p align="JUSTIFY">C bit fields are used, for example, in programming
+communications hardware, where manipulation of a bit stream is
+required.  In Figure 3.5 is presented C code for an example
+communications routine, where a structure called <code>receiver</code>
+is formed from an 8-bit field called <i>receivedByte</i> and two
+one-bit fields called <i>ready</i> and <i>enable</i>.  The C routine
+sets <code>receiver.ready</code> to 0 and <code>receiver.enable</code>
+to 1.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_021.gif"><br><br>
+<b>Figure 3.5.</b> Example of C bit field use in MIPS,
+adapted from [Maf01].</p>
+
+<p align="JUSTIFY">Note how the MIPS code implements the functionality
+of the C code, where the state of the registers $s0 and $s1 is
+illustrated in the five lines of diagrammed register contents below
+the code.  In particular, the initial register state is shown in the
+first two lines.  The <code>sll</code> instruction loads the contents
+of <code>$s1</code> (the receiver) into <code>$s0</code> (the data
+register), and the result of this is shown on the second line of the
+register contents.  Next, the <code>srl</code> instruction left-shifts
+<code>$s0</code> 24 bits, thereby discarding the <i>enable</i> and
+<i>ready</i> field information, leaving just the received byte.  To
+signal the receiver that the data transfer is completed, the
+<code>andi</code> and <code>ori</code> instructions are used to set
+the enable and ready bits in <code>$s1</code>, which corresponds to
+the <i>receiver</i>.  The data in <code>$s0</code> has already been
+received and put in a register, so there is no need for its further
+manipulation.
+
+<a name="Sec3.2"></a>
+</p><h3>3.2. Arithmetic Logic Units and the MIPS ALU</h3>
+
+<p><a href="http://www.cise.ufl.edu/%7Emssz/CompOrg/PatHen-Readings.html#ExSec3.2"><b>Reading Assignments and
+Exercises</b></a>
+
+</p><p align="JUSTIFY">In this section, we discuss hardware building blocks,
+ALU design and implementation, as well as the design of a 1-bit ALU
+and a 32-bit ALU.  We then overview the implementation of the MIPS
+ALU.
+
+</p><h4>3.2.1. Basic Concepts of ALU Design</h4>
+
+<p align="JUSTIFY">ALUs are implemented using lower-level components
+such as logic gates, including <i>and</i>, <i>or</i>, <i>not</i> gates
+and multiplexers.  These building blocks work with individual bits,
+but the actual ALU works with 32-bit registers to perform a variety of
+tasks such as arithmetic and shift operations.  
+
+</p><p align="JUSTIFY">In principle, an ALU is built from 32 separate 1-bit
+ALUs.  Typically, one constructs separate hardware blocks for each
+task (e.g., arithmetic and logical operations), where each operation
+is applied to the 32-bit registers in parallel, and the selection of
+an operation is controlled by a multiplexer.  The advantage of this
+approach is that it is easy to add new operations to the instruction
+set, simply by associating an operation with a multiplexer control 
+code.  This can be done provided that the mux has sufficient capacity.
+Otherwise, new data lines must be added to the mux(es), and the CPU
+must be modified to accomodate these changes.
+
+</p><h4>3.2.2. 1-bit ALU Design</h4>
+
+<p align="JUSTIFY">As a result, the ALU consists of 32 muxes (one for
+each output bit) arranged in parallel to send output bits from each
+operation to the ALU output.  
+
+</p><p align="JUSTIFY"><b>3.2.2.1. And/Or Operations.</b> As shown in Figure
+3.6, a simple (1-bit) ALU operates <i>in parallel</i>, producing all
+possible results that are then selected by the multiplexer
+(represented by an oval shape at the output of the <i>and</i> /
+<i>or</i> gates.  The output C is thus selected by the multiplexer.
+(<i>Note</i>: If the multiplexer were to be applied at the input(s)
+rather than the output, twice the amount of hardware would be
+required, because there are two inputs versus one output.)
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_010.gif"><br><br>
+<b>Figure 3.6.</b> Example of a simple 1-bit ALU, where the
+oval represents a multiplexer with a control code denoted
+by <i>Op</i> and an output denoted by C - 
+adapted from [Maf01].</p>
+
+<p align="JUSTIFY"><b>3.2.2.2. Full Adder.</b> Now let us consider the
+one-bit adder.  Recalling the carry situation shown in Figure 3.1, we
+show in Figure 3.7 that there are two types of carries - <i>carry
+in</i> (occurs at the input) and <i>carry out</i> (at the output).
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_027.gif"><br><br>
+<b>Figure 3.7.</b> Carry-in and carry-out in Boolean addition,
+adapted from [Maf01].</p>
+
+<p align="JUSTIFY">Here, each bit of addition has three input bits
+(A<sub>i</sub>, B<sub>i</sub>, and CarryIn<sub>i</sub>), as well
+as two output bits (Sum<sub>i</sub>, CarryOut<sub>i</sub>), where
+CarryIn<sub>i+1</sub> = CarryOut<sub>i</sub>. (Note: The "i"
+subscript denotes the i-th bit.)  This relationship can be seen
+when considering the full adder's truth table, shown below:
+
+</p><p align="CENTER"><img src="CDA-arith_files/FullAdder-TruthTable.gif"></p>
+
+<p align="JUSTIFY">Given the four one-valued results in the truth table,
+we can use the sum-of-products method to construct a one-bit adder
+circuit from four three-input <i>and</i> gates and one four-input
+<i>or</i> gate, as shown in Figure 3.8a.  The CarryOut calculation can
+be similarly implemented with three two-input <i>and</i> gates and one
+three-input <i>or</i> gate, as shown in Figure 3.8b.  These two circuits
+can be combined to effect a one-bit full adder with carry, as shown in
+Figure 3.8c.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_017.gif"><br><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+(a) &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; (b)<br><br>
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_003.gif"><br><br>(c)<br><br>
+<b>Figure 3.7.</b> Full adder circuit (a) sum-of-products form
+from above-listed truth table, (b) CarryOut production, and
+(c) one-bit full adder with carry - 
+adapted from [Maf01].</p>
+
+<p align="JUSTIFY">Recalling the symbol for the one-bit adder, we can add an
+addition operation to the one-bit ALU shown in Figure 3.6.  This is done
+by putting two control lines on the output mux, and by having an
+additional control line that inverts the <i>b</i> input (shown as "Binvert")
+in Figure 3.9).  
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_015.gif"><br><br> (a) &nbsp;
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; (b)<br><br> <b>Figure
+3.9.</b> One-bit ALU with three operations: <i>and</i>, <i>or</i>, and
+addition: (a) Least significant bit, (b) Remaining bits - adapted from
+[Maf01].</p>
+
+<h4>3.2.3. 32-bit ALU Design</h4>
+
+<p align="JUSTIFY">The final implementation of the preceding technique
+is in a 32-bit ALU that incorporates the <i>and</i>, <i>or</i>, and
+addition operations.  The 32-bit ALU can be simply constructed from
+the one-bit ALU by chaining the carry bits, such that
+CarryIn<sub>i+1</sub> = CarryOut<sub>i</sub>, as shown in Figure 3.10.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_014.gif"><br><br><b>Figure
+3.10.</b> 32-bit ALU with three operations: <i>and</i>, <i>or</i>, and
+addition - adapted from 
+[Maf01].</p>
+
+<p align="JUSTIFY">This yields a composite ALU with two 32-bit input
+vectors <b>a</b> and <b>b</b>, whose i-th bit is denoted by
+<b>a</b><sub>i</sub> and <b>b</b><sub>i</sub>, where i = 0..31.  The
+result is also a 32-bit vector, and there are two control buses - one
+for Binvert, and one for selecting the operation (using the mux shown
+in Figure 3.9).  There is one CarryOut bit (at the bottom of Figure
+3.10), and no CarryIn.
+
+</p><p align="JUSTIFY">We next examine the MIPS ALU and how it supports
+operations such as shifting and branching.
+
+</p><h4>3.2.4. MIPS ALU Design</h4>
+
+<p align="JUSTIFY">We begin by assuming that we have the generic one-bit
+ALU designed in Sections 3.2.1-3.2.3, and shown below:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-ALUdesign3.gif"></p>
+
+<p align="JUSTIFY">Here, the <i>Bnegate</i> input is the same as the
+<i>Binvert</i> input in Figure 3.9, and we assume that we have three
+control inputs to the mux whose control line configuration is
+associated with an operation, as follows:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-ALUcontrol3.gif"></p>
+
+<p align="JUSTIFY"><b>3.2.4.1. Support for the <code>slt</code>
+Instruction.</b> The <code>slt</code> instruction (set on less-than)
+has the following format:
+
+</p><p align="CENTER"><code><b>slt rd, rs, rt</b></code></p>
+
+<p align="JUSTIFY">where rd = 1 if rs &lt; rt, and rd = 0 otherwise.
+
+</p><p align="JUSTIFY">Observe that the inputs rs and rt can represent high-level
+language input variables A and B.  Thus, we have the following implication:
+
+</p><p align="CENTER">A &lt; B =&gt; A - B &lt; 0 ,</p>
+
+<p align="JUSTIFY">which is implemented as follows:
+
+</p><p></p><ul><p><b>Step 1.</b> Perform subtraction using negation and a full adder
+
+</p><p>       <b>Step 2.</b> Check most significant bit (sign bit)
+
+</p><p>       <b>Step 3.</b> Sign bit tells us whether or not A &lt; B
+</p></ul>
+
+<p align="JUSTIFY">To implement <code>slt</code>, we need (a) new input
+line called <i>Less</i> that goes directly to the mux, and (b) a new
+control code (111) to select the <code>slt</code> operation.
+Unfortunately, the result for <code>slt</code> cannot be taken
+directly as the output from the adder.  Instead, we need a new output
+line called <i>Set</i> that is used only for the <code>slt</code>
+instruction.  Overflow detection logic is also associated with this
+bit.  The additional logic that supports <code>slt</code> is shown in
+Figure 3.11.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_018.gif"><br><br><b>Figure
+3.11.</b> One-bit ALU with additional logic for <i>slt</i> operation -
+adapted from [Maf01].</p>
+
+<p align="JUSTIFY">Thus, for a 32-bit ALU, the additional cost of the
+<code>slt</code> instruction is (a) augmentation of each of 32 muxes
+to have three control lines instead of two, (b) augmentation of each
+of 32 one-bit ALU's control signal structure to have an additional
+(<i>Less</i>) input, and (c) the addition of overflow detection
+circuitry, a <i>Set</i> output, and an <i>xor</i> gate on the output
+of the sign bit.
+
+</p><p align="JUSTIFY"><b>3.2.4.2. Support for the <code>bne</code>
+Instruction.</b> Recall the branch-on-not-equal instruction <code>bne
+r1, r2, Label</code>, where r1 and r2 denote registers and Label is a
+branch target label or address.  To implement <code>bne</code>, we 
+observe that the following implication holds: 
+
+</p><p align="CENTER">A - B = 0 =&gt; A = B .</p>
+
+<p align="JUSTIFY">then add hardware to test if the comparison between A
+and B implemented as (A - B) is zero.  Again, this can be done using
+negation and the full adder that we have already designed as part of
+the ALU.  The additional step is to <i>or</i> all 32 results from each
+of the one-bit ALUs, then invert the output of the <i>or</i>
+operation.  Thus, if all 32 bits from the one-bit full adders are
+zero, then the output of the <i>or</i> gate will be zero (inverted, it
+will be one).  Otherwise, the output of the <i>or</i> gate wil be one
+(inverted, it will be zero).  We also need to consider A - B, to see
+if there is overflow when A = 0.  A block diagram of the hardware
+modification is shown in Figure 3.12.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_002.gif"><br><br><b>Figure
+3.12.</b> 32-bit ALU with additional logic to support <i>bne</i> and
+<i>slt</i> instructions - adapted from [Maf01].</p>
+
+<p align="JUSTIFY">Here, the additional hardware involves 32 separate
+output lines from the 342 one-bit adders, as well as a cascade of
+<i>or</i> gates to implement a 32-input <i>nor</i> gate (which doesn't
+exist in practice, due to excessive fan-in requirement).
+
+</p><p align="JUSTIFY"><b>3.2.4.3. Support for Shift Instructions.</b>
+Considering the <code>sll</code>, <code>srl</code>, and <code>sra</code>
+instructions, these are supported in the ALU under design by adding a
+data line for the shifter (both left and right).  However, the shifters
+are much more easily implemented at the transistor level (e.g., outside
+the ALU) rather than trying to fit more circuitry onto the ALU itself.
+
+</p><p align="JUSTIFY">In order to implement a shifter external to the ALU,
+we consider the design of a <i>barrel shifter</i>, shown schematically
+in Figure 3.13.  Here, the closed siwtch pattern, denoted by black
+filled circles, is controlled by the CPU through control lines to a mux
+or decoder.  This allows data line x<sub>i</sub> to be sent to 
+output x<sub>j</sub>, where i and j can be unequal.  
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_004.gif"><br><br><b>Figure
+3.13.</b> Four bit barrel shifter, where "x &gt;&gt; 1" denotes a shift
+amount greater than one - adapted from [Maf01].</p>
+
+<p align="JUSTIFY">This type of N-bit shifter is well understood and
+easy to construct, but has space complexity of <b>O</b>(N<sup>2</sup>).
+
+</p><p align="JUSTIFY"><b>3.2.4.4. Support for Immediate Instructions.</b> In
+the MIPS immediate instruction formats, the first input to the ALU is
+the first register (we'll call it <i>rs</i>) in the immediate command,
+while the second input is either data from a register <i>rt</i> or a
+zero or sign-extended constant (immediate).  To support this type of
+instruction, we need to add a mux at the second input of the ALU, as
+shown in Figure 3.14.  This allows us to select whether <i>rt</i> or
+the sign-extended immediate is input to the ALU. 
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_013.gif"><br><br><b>Figure
+3.14.</b> Supporting immediate instructions on a MIPS ALU design, where
+IR denotes the instruction register, and (/<sup>16</sup>) denotes a
+16-bit parallel bus - adapted from [Maf01].</p>
+
+<h4>3.2.5. ALU Performance Issues</h4>
+
+<p align="JUSTIFY">When estimating or measuring ALU performance, one
+wonders if a 32-bit ALU is as fast as a 1-bit ALU - what is the degree
+of parallelism, and do all operations execute in parallel?  In
+practice, some operations on N-bit operands (e.g., addition with
+sequential propagation of carries) take <b>O</b>(N) time.  Other
+operations, such as bitwise logical operations, take <b>O</b>(1) time.
+Since addition can be implemented in a variety of ways, each with a
+certain level of parallelism, it is wise to consider the possibility
+of a full adder being a computational bottleneck in a simple ALU.
+
+</p><p align="JUSTIFY">We previously discussed the ripple-carry adder
+(Figure 3.10) that propagates the carry bit from stage i to stage i+1.
+It is readily seen that, for an N-bit input, <b>O</b>(N) time is
+required to propagate the carry to the most significant bit.  In
+contrast, the fastest N-bit adder uses <b>O</b>(log<sub>2</sub>N)
+stages in a tree-structured configuration with N-1 one-bit adders.
+Thus, the complexity of this technique is <b>O</b>(log<sub>2</sub>N)
+work.  In a sequential model of computation, this translates to
+<b>O</b>(log<sub>2</sub>N) time.  If one is adding smaller numbers
+(e.g., up to 10-bit integers with current memory technology), then a
+<i>lookup table</i> can be used that (1) forms a memory address A by
+concatenating binary representations of the two operands, and (2)
+produces a result stored in memory that is accessed using A.  This
+takes <b>O</b>(1) time, that is dependent upon memory bandwidth.
+
+</p><p align="JUSTIFY">An intermediate approach between these extremes is to
+use a <i>carry-lookahead adder</i> (CLA).  Suppose we do not know the value
+of the carry-in bit (which is usually the case).  We can express the
+generation (g) of a carry bit for the i-th position of two operands
+<i>a</i> and <i>b</i>, as follows:
+
+</p><p align="CENTER">g<sub>i</sub> = a<sub>i</sub> b<sub>i</sub> ,</p>
+
+<p align="JUSTIFY">where the i-th bits of <i>a</i> and <i>b</i> are
+<i>and</i>-ed.  Similarly, the propagated carry is expressed as:
+
+</p><p align="CENTER">p<sub>i</sub> = a<sub>i</sub> + b<sub>i</sub> ,</p>
+
+<p align="JUSTIFY">where the i-th bits of <i>a</i> and <i>b</i> are
+<i>or</i>-ed.  This allows us to recursively express the carry bits 
+in terms of the carry-in c<sub>0</sub>, as follows:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-carrylookahead.gif"></p>
+
+<p align="JUSTIFY">Did we get rid of the ripple?  (Well, sort of...)  What
+we did was transform the work involved in carry propagation from the
+adder circuitry to a large equation for c<sub>N</sub>.  However, this
+equation must still be computed in hardware.  (<i>Lesson</i>: In
+computing, you don't get much for free.)
+
+</p><p align="JUSTIFY">Unfortunately, it is prohibitively costly to build a
+CLA circuit for operands as large as 16 bits.  Instead, we can use the
+CLA principle to create a two-tiered circuit, for example, at the
+bottom level an array of four 4-bit full adders (economical to construct),
+connected at the top level by a CLA, as shown below:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-carrylookahead2.gif"></p>
+
+<p align="JUSTIFY">Using a two-level CLA architecture, where lower-
+(upper-)case g and p denote the first (second) level generates and
+carries, we have the following equations:
+
+</p><ul><ul>
+<p align="JUSTIFY">P<sub>0</sub> = p<sub>3</sub> + p<sub>2</sub> + p<sub>1</sub> + p<sub>0</sub> <br>
+P<sub>1</sub> = p<sub>7</sub> + p<sub>6</sub> + p<sub>5</sub> + p<sub>4</sub> <br>
+P<sub>2</sub> = p<sub>11</sub> + p<sub>10</sub> + p<sub>9</sub> + p<sub>8</sub> <br>
+P<sub>3</sub> = p<sub>15</sub> + p<sub>14</sub> + p<sub>13</sub> + p<sub>12</sub> <br><br>
+
+G<sub>0</sub> = g<sub>3</sub> + p<sub>3</sub>g<sub>2</sub> + p<sub>3</sub>p<sub>2</sub>g<sub>1</sub> + p<sub>3</sub>p<sub>2</sub>p<sub>1</sub>g<sub>0</sub><br>
+
+G<sub>1</sub> = g<sub>7</sub> + p<sub>7</sub>g<sub>6</sub> + p<sub>7</sub>p<sub>6</sub>g<sub>5</sub> + p<sub>7</sub>p<sub>6</sub>p<sub>5</sub>g<sub>4</sub><br>
+
+G<sub>2</sub> = g<sub>11</sub> + p<sub>11</sub>g<sub>10</sub> + p<sub>11</sub>p<sub>10</sub>g<sub>9</sub> + p<sub>11</sub>p<sub>10</sub>p<sub>9</sub>g<sub>8</sub><br>
+
+G<sub>3</sub> = g<sub>15</sub> + p<sub>15</sub>g<sub>14</sub> + p<sub>15</sub>p<sub>14</sub>g<sub>13</sub> + p<sub>15</sub>p<sub>14</sub>p<sub>13</sub>g<sub>12</sub><br>
+</p></ul></ul>
+
+<p align="JUSTIFY">Assuming that <i>and</i> as well as <i>or</i> gates
+have the same propagation delay, comparative analysis of the ripple
+carry vs. carry lookahead adders reveals that the total time to
+compute a CLA result is the summation of all gate delays along the
+longest path through the CLA.  In the case of the 16-bit adder
+exemplified above, the CarryOut signals c<sub>16</sub> and
+C<sub>4</sub> define the longest path.  For the ripple carry adder,
+this path has length 2(16) = 32.  
+
+</p><p align="JUSTIFY">For the two-level CLA, we get two levels of logic in
+terms of the architecture (P and G versus p and g).  P<sub>i</sub> is
+specified in one level of logic using p<sub>i</sub>.  G<sub>i</sub> is
+specified in one level of logic using p<sub>i</sub> and g<sub>i</sub>.
+Also, p<sub>i</sub> and g<sub>i</sub> each represent one level of
+logic computed in terms of inputs a<sub>i</sub> and b<sub>i</sub>.
+Thus, the CLA critical path length is 2 + 2 + 1 = 5, which means that
+two-level 16-bit CLA is 6.4 = 32/5 times faster than a 16-bit ripple
+carry adder.
+
+</p><p align="JUSTIFY">It is also useful to note that the logic equation
+for a one-bit adder can be expressed more simply with <i>xor</i> logic,
+for example:
+
+</p><p align="CENTER">A + B = A <i>xor</i> B <i>xor</i> CarryIn .</p>
+
+<p align="JUSTIFY">In some technologies, <i>xor</i> is more efficient
+than <i>and</i>/<i>or</i> gates.  Also, processors are now designed
+in CMOS technology, which allows fewer muxes (this also applies to
+the barrel shifter).  However, the design principles are similar.
+
+</p><h4>3.2.6. Summary</h4>
+
+<p align="JUSTIFY">We have shown that it is feasible to build an ALU to
+support the MIPS ISA.  The key idea is to use a multiplexer to select
+the output from a collection of functional units operating in
+parallel.  We can replicate a 1-bit ALU that uses this principle, with
+appropriate connections between replicates, to produce an N-bit ALU.
+
+</p><p align="JUSTIFY">Important things to remember about ALUs are: (a) all
+of the gates are working in parallel, (b) the speed of a gate is
+affected by the number of inputs (degree of <i>fan-in</i>), and (c)
+the speed of a circuit depends on the number of gates in the longest
+computational path through the circuit (this can vary per operation).
+Finally, we have shown that changes in architectural organization can
+improve performance, similar to better algorithms in software.
+
+<a name="Sec3.3"></a>
+</p><h3>3.3. Boolean Multiplication and Division </h3>
+
+<p><a href="http://www.cise.ufl.edu/%7Emssz/CompOrg/PatHen-Readings.html#ExSec3.3"><b>Reading Assignments and
+Exercises</b></a>
+
+</p><p align="JUSTIFY">Multiplication is more complicated than addition,
+being implemented by shifting as well as addition.  Because of the
+partial products involved in most multiplication algorithms, more time
+and more circuit area is required to compute, allocate, and sum the
+partial products to obtain the multiplication result.  
+
+</p><h4>3.3.1. Multiplier Design</h4>
+
+<p align="JUSTIFY">We herein discuss three versions of the multiplier
+design based on the <i>pencil-and-paper algorithm for
+multiplication</i> that we all learned in grade school, which operates
+on Boolean numbers, as follows:
+
+</p><pre>          Multiplicand:   0010   # Stored in register r1
+          Multiplier:   x 1101   # Stored in register r2
+          --------------------
+	  Partial Prod    0010   # No shift for LSB of Multiplier
+             "      "    0000    # 1-bit shift of zeroes <b>(can omit)</b>
+             "      "   0010     # 2-bit shift for bit 2 of Multiplier
+             "      "  0010      # 3-bit shift for bit 3 of Multiplier
+          --------------------   # Zero-fill the partial products and add
+          PRODUCT      0011010   # Sum of all partial products -&gt; r3
+</pre>
+
+<p align="JUSTIFY">A flowchart of this algorithm, adapted for multiplication
+of 32-bit numbers, is shown in Figure 3.15, below, together with a 
+schematic representation of a simple ALU circuit that implements this
+version of the algorithm.  Here, the multiplier and the multiplicand
+are shifted relative to each other, which is more efficient than 
+shifting the partial products alone.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3.gif"><br>(a)<br>
+<img src="CDA-arith_files/Figure3_011.gif"><br>(b)<br>
+<b>Figure 3.15.</b> Pencil-and-paper multiplication of 32-bit Boolean
+number representations: (a) algorithm, and (b) simple ALU circuitry -
+adapted from [Maf01].</p>
+
+<p align="JUSTIFY">The second version of this algorithm is shown in
+Figure 3.16.  Here, the product is shifted with respect to the
+multiplier, and the multiplicand is shifted after the product register
+has been shifted. A 64-bit register is used to store both the
+multiplicand and the product.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_028.gif"><br>(a)<br> <img src="CDA-arith_files/Figure3_005.gif"><br>(b)<br> <b>Figure 3.16.</b>
+Second version of pencil-and-paper multiplication of 32-bit Boolean
+number representations: (a) algorithm, and (b) schematic diagram of
+ALU circuitry - adapted from [Maf01].</p>
+
+<p align="JUSTIFY">The final version puts results in the product
+register if and only if the least significant bit of the product
+produced on the previous iteration is one-valued.  The product
+register only is shifted.  This reduces by approximately 50 percent
+the amount of shifting that has to be done, which reduces time and
+hardware requirements.  The algorithm and ALU schematic diagram is
+shown in Figure 3.17.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_030.gif"><br>(a)<br> <img src="CDA-arith_files/Figure3_007.gif"><br>(b)<br> <b>Figure 3.17.</b>
+Third version of pencil-and-paper multiplication of 32-bit Boolean
+number representations: (a) algorithm, and (b) schematic diagram of
+ALU circuitry - adapted from [Maf01].</p>
+
+<p align="JUSTIFY">Thus, we have the following shift-and-add scheme for
+multiplication:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPSrvw-ALUmult3alg.html"></p>
+
+<p align="JUSTIFY">The preceding algorithms and circuitry does not hold
+for signed multiplication, since the bits of the multiplier no longer
+correspond to shifts of the multiplicand.  The following example is
+illustrative:
+
+</p><p align="CENTER"><img src="CDA-arith_files/SignedMultiplnProblem1.gif"></p>
+
+<p align="JUSTIFY">A solution to this problem is Booth's Algorithm,
+whose flowchart and corresponding schematic hardware diagram are
+shown in Figure 3.18.  Here, the examination of the multiplier
+is performed with <i>lookahead</i> toward the next bit.  Depending
+on the bit configuration, the multiplicand is positively or 
+negatively signed, and the multiplier is shifted or unshifted.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_020.gif"><br>(a)<br>
+<img src="CDA-arith_files/Figure3_022.gif"><br>(b)<br> <b>Figure
+3.18.</b> Booth's procedure for multiplication of 32-bit Boolean
+number representations: (a) algorithm, and (b) schematic diagram of
+ALU circuitry - adapted from [Maf01].</p>
+
+<p align="JUSTIFY">Observe that Booth's algorithm requires only the
+addition of a subtraction step and the comparison operations for
+the two-bit codes, versus the one-bit comparison in the preceding
+three algorithms.  An example of Booth's algorithm follows:
+
+</p><p align="CENTER"><img src="CDA-arith_files/ALUboothmul-alg-Ex1.gif"></p>
+
+<p align="JUSTIFY">Here N = 4 iterations of the loop are required
+to produce a product from two N = 4 digit operands.  Four shifts and
+two subtractions are required.  From the analysis of the algorithm
+shown in Figure 3.18a, it is easily seen that the maximum work for
+multiplying two N-bit numbers is given by <b>O</b>(N) shift and
+addition operations.  From this, the worst-case computation time
+can be computed given CPI for the shift and addition instructions,
+as well as cycle time of the ALU.
+
+</p><h4>3.3.2. Design of Arithmetic Division Hardware</h4>
+
+<p align="JUSTIFY">Division is a similar operation to multiplication,
+especially when implemented using a procedure similar to the algorithm
+shown in Figure 3.18a.  For example, consider the pencil-and-paper
+method for dividing the byte 10010011 by the nybble 1011:
+
+</p><p align="CENTER"><img src="CDA-arith_files/ALUdivide-PPalg-Ex1.gif"></p>
+
+<p>The governing equation is as follows:
+
+</p><p align="CENTER">Dividend = Quotient · Divisor + Remainder . </p>
+
+<p align="JUSTIFY"><b>3.3.2.1. Unsigned Division.</b> The
+<i>unsigned</i> division algorithm that is similar to Booth's
+algorithm is shown in Figure 3.19a, with an example shown in Figure
+3.19b.  The ALU schematic diagram in given in Figure 3.19c.  The
+analysis of the algorithm and circuit is very similar to the preceding
+discussion of Booth's algorithm.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_009.gif"><br>(a)<br> <img src="CDA-arith_files/Figure3_026.gif"><br>(b)<br> <img src="CDA-arith_files/Figure3_023.gif"><br>(c)<br> <b>Figure
+3.19.</b> Division of 32-bit Boolean number representations: (a)
+algorithm, (b) example using division of the unsigned integer 7 by the
+unsigned integer 3, and (c) schematic diagram of ALU circuitry -
+adapted from [Maf01].</p>
+
+<p align="JUSTIFY"><b>3.3.2.2. Signed Divisiion.</b> With signed
+division, we negate the quotient if the signs of the divisor and
+dividend disagree.  The remainder and the divident must have the same
+signs.  The governing equation is as follows:
+
+</p><p align="CENTER">Remainder = Divident - (Quotient · Divisor) , </p>
+
+<p align="JUSTIFY">and the following four cases apply:
+
+</p><p align="CENTER"><img src="CDA-arith_files/ALUdivide-Signs-Ex1.gif"></p>
+
+<p align="JUSTIFY">We present the preceding division algorithm, revised for
+signed numbers, as shown in Figure 3.20a.  Four examples, corresponding
+to each of the four preceding sign permutations, are given in Figure 3.20b
+and 3.20c.  
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_012.gif"><br><br>(a)<br> <img src="CDA-arith_files/Figure3_029.gif"><br>(b)<br> <img src="CDA-arith_files/Figure3_031.gif"><br>(c)<br> <b>Figure
+3.20.</b> Division of 32-bit Boolean number representations: (a)
+algorithm, and (b,c) examples using division of +7 or -7 by the
+integer +3 or -3; adapted from [Maf01].</p>
+
+<blockquote>
+<p align="JUSTIFY"><font color="BLUE"><b>Self-Exercise.</b> Be able to
+trace each example shown in Figure 3.20b,c through the algorithm whose
+flowchart is given in Figure 3.20a.  Know how each part of the
+algorithm works, and why it behaves that way. <i>Hint: This exercise,
+or a part of it, is likely to be an exam question.</i></font>
+</p></blockquote>
+
+<p align="JUSTIFY"><b>3.3.2.3. Divisiion in MIPS.</b> MIPS supports
+multiplication and division using existing hardware, primarily the ALU
+and shifter.  MIPS needs one extra hardware component - a 64-bit
+register able to support <code>sll</code> and <code>sra</code>
+instructions.  The upper (high) 32 bits of the register contains the
+remainder resulting from division.  This is moved into a register in
+the MIPS register stack (e.g., <code>$t0</code>) by the
+<code>mfhi</code> command. The lower 32 bits of the 64-bit register
+contains the quotient resulting from division.  This is moved into a
+register in the MIPS register stack by the <code>mflo</code> command.
+
+</p><p align="JUSTIFY">In MIPS assembly language code, signed division is
+supported by the <code>div</code> instruction and unsigned division,
+by the <code>divu</code> instruction.  MIPS hardware does not check for
+division by zero.  <i>Thus, divide-by-zero exception must be detected 
+and handled in system software</i>.  A similar comment holds for overflow
+or underflow resulting from division.
+
+</p><p align="JUSTIFY">Figure 3.21 illustrates the MIPS ALU that supports
+integer arithmetic operations (+,-,x,/).  
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_016.gif"><br><br><b>Figure 3.21.</b> MIPS
+ALU supporting the integer arithmetic operations (+,-,x,/), adapted
+from [Maf01].</p>
+
+<blockquote>
+<p align="JUSTIFY"><font color="BLUE"><b>Self-Exercise.</b> Show how the
+MIPS ALU in Figure 3.21 supports the integer arithmetic operations (+,-,x,/)
+using the algorithms and hardware diagrams given thus far.  <i>Hint:
+This exercise, or a part of it, is likely to be an exam question.</i></font>
+</p></blockquote>
+
+<a name="Sec3.4"></a>
+<h3>3.4. Floating Point Arithmetic</h3>
+
+<p><a href="http://www.cise.ufl.edu/%7Emssz/CompOrg/PatHen-Readings.html#ExSec3.4"><b>Reading Assignments and
+Exercises</b></a>
+
+</p><p align="JUSTIFY">Floating point (FP) representations of decimal numbers are
+essential to scientific computation using <i>scientific notation</i>.
+The standard for floating point representation is the IEEE 754
+Standard.  In a computer, there is a tradeoff between range and
+precision - given a fixed number of binary digits (bits), precision
+can vary inversely with range.  In this section, we overview decimal
+to FP conversion, MIPS FP instructions, and how registers are used for
+FP computations.
+
+</p><p align="JUSTIFY">We have seen that an n-bit register can represent
+unsigned integers in the range 0 to 2<sup>n</sup>-1, as well as signed
+integers in the range -2<sup>n-1</sup> to -2<sup>n-1</sup>-1.  However, there are very large numbers (e.g., 3.15576 · 10<sup>23</sup>),
+very small numbers (e.g., 10<sup>-25</sup>), rational numbers with
+repeated digits (e.g., 2/3 = 0.666666...), irrationals such as 2<sup>1/2</sup>,
+and transcendental numbers such as e = 2.718..., all of which need to be
+represented in computers for scientific computation to be supported.
+
+</p><p align="JUSTIFY">We call the manipulation of these types of numbers
+<i>floating point arithmetic</i> because the decimal point is not
+fixed (as for integers).  In C, such variables are declared as the
+<code>float</code> datatype.
+
+</p><h4>3.4.1. Scientific Notation and FP Representation </h4>
+
+<p align="JUSTIFY">Scientific notation has the following configuration:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-cfg.gif"></p>
+
+<p align="JUSTIFY">and can be in <i>normalized form</i> (mantissa has
+exactly one digit to the left of the decimal point, e.g., 2.3425 · 10<sup>-19</sup>) or <i>non-normalized form</i>. Binary scientiic notation has the folowing configuration, which corresponds to the  decimal forms:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-cfgbin.gif"></p>
+
+<p align="JUSTIFY">Assume that we have the following <i>normal
+format</i> for scientific notation in Boolean numbers:
+
+</p><p align="CENTER">+1.xxxxxxx<sub>2</sub> · w<sup>yyyyy<sub>2</sub></sup> ,</p>
+
+<p align="JUSTIFY">where "xxxxxxx" denotes the <i>significand</i> and
+"yyyyy" denotes the <i>exponent</i> and we assume that the number has
+sign S.  This implies the following 32-bit representation for FP
+numbers:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-cfg32b.gif"></p>
+
+<p align="JUSTIFY">which can represent decimal numbers ranging from -2.0
+· 10<sup>-38</sup> to 2.0 · 10<sup>38</sup>.
+
+</p><h4>3.4.2 Overflow and Underflow</h4>
+
+<p align="JUSTIFY">In FP, overflow and underflow are slightly different
+than in integer numbers.  FP overflow (underflow) refers to the
+positive (negative) exponent being too large for the number of bits
+alloted to it.  This problem can be somewhat ameliorated by the use of
+<i>double precision</i>, whose format is shown as follows:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-cfg64b.gif"></p>
+
+<p align="JUSTIFY">Here, two 32-bit words  are combined to support an
+11-bit signed exponent and a 52-bit significand.   This representation
+is declared in C using the <code>double</code> datatype, and can support
+numbers with exponents ranging from -308<sub>10</sub> to 308<sub>10</sub>.
+The primary advantage is greater precision in the mantissa.
+
+</p><p align="JUSTIFY">The following chart illustrates specific types of
+overflow and underflow encountered in standard FP representation:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-ovfl1.gif"></p>
+
+<h4>3.4.3. IEEE 754 Standard</h4>
+
+<p align="JUSTIFY">Both single- and double-precision FP representations
+are supported by the IEEE 754 Standard, which is used in the vast
+majority of computers since its publication in 1980.  IEEE 754
+facilitates the porting of FP programs, and ensures minimum standards
+of quality for FP computer arithmetic.  The result is a signed
+representation - the sign bit is 1 if the FP number represented by
+IEEE754 is negative.  Otherwise, the sign is zero.  A leading value of
+1 in the significand is implicit for normalized numbers.  Thus, the
+significand, which always has a value between zero and one, occupies
+23 + 1 bits in single-precision FP and 52 + 1 bits in double
+precision.  Zero is represented by a zero significand and a zero
+exponent - there is no leading value of one in the significand.  The
+IEEE 754 representation is thus computed as:
+
+</p><p align="CENTER">FPnumber = (-1)<sup>S</sup> · (1 + Significand)
+· 2<sup>Exponent</sup> .</p>
+
+<p align="JUSTIFY">As a parenthetical note, the significand can be translated
+into decimal values via the following expansion:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-signif.gif"></p>
+
+<p align="JUSTIFY">With IEEE 754, it is possible to manipulate FP
+numbers without having special-purpose FP hardware.  For example,
+consider the sorting of FP numbers.  IEEE 754 facilitates breaking FP
+numbers up into three parts (sign, significant, exponent).  The
+numbers to be sorted are ordered first according to sign (negative &lt;
+positive), second according to exponent (larger exponent =&gt; larger number),
+and third according to significand (when one has at least two numbers with
+the same exponents).
+
+</p><p align="JUSTIFY">Another issue of interest in IEEE 754 is <i>biased
+notation</i> for exponents.  Observe that twos complement notation
+does not work for exponents: the largest negative (positive) exponent
+is 00000001<sub>2</sub> (11111111<sub>2</sub>).  Thus, we must add a
+<i>bias term</i> to the exponent to center the range of exponents on
+the bias number, which is then equated to zero.  The bias term is 127
+(1023) for the IEEE 754 single-precision (double-precision)
+representation.  This implies that
+
+</p><p align="CENTER">FPnumber = (-1)<sup>S</sup> · (1 + Significand)
+· 2<sup>(Exponent - Bias)</sup> .</p>
+
+<p align="JUSTIFY">As a result, we have the following example of binary
+to decimal floating point conversion:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-2to10cnv.gif"></p>
+
+<p align="JUSTIFY">Decimal-to-binary FP conversion is somewhat more
+difficult.  Three cases pertain: (1) the decimal number can be
+expressed as a fraction n/d where d is a power of two; (2) the decimal
+number has repeated digits (e.g., 0.33333); or (3) the decimal number
+does not fit either Case 1 or Case 2.  In Case 1, one selects the
+exponent as -log<sub>2</sub>(d), and converts n to binary notation.
+Case 3 is more difficult, and will not be discussed here.  Case 2 is
+exemplified in the following diagram:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-10to2cnv.gif"></p>
+
+<p align="JUSTIFY">Here, the significand is 101 0101 0101 0101 0101 0101,
+the sign is negative (representation = 1), and the exponent is computed
+as 1 + 127 = 128<sub>10</sub> = 1000 0000<sub>2</sub>.  This yields
+the following representation in IEEE 754 standard notation:
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-10to2cnv2.gif"></p>
+
+<p align="JUSTIFY">The following table summarizes special values that
+can be represented using the IEEE 754 standard.
+
+</p><p align="CENTER"><b>Table 3.1.</b> Special values in the IEEE 754 standard.<br><br><img src="CDA-arith_files/MIPS-SciNotation-SpecialVals.gif"></p>
+
+<p align="JUSTIFY">Of particular interest in the preceding table is the
+<i>NaN</i> (not a number) representation.  For example, when taking
+the square root of a negative number, or when dividing by zero, we
+encounter operations that are undefined in the arithmetic operations
+over real numbers.  These results are called NaNs and are represented
+with an exponent of 255 and a zero significand.  NaNs can help with
+debugging, but they contaminate calculations (e.g., NaN + <i>x</i> =
+NaN).  The recommended approach to NaNs, especially for software
+designers or engineers early in their respective careers, is not to
+use NaNs.
+
+</p><p align="JUSTIFY">Another variant of FP representation is denormalized
+numbers, also called <i>denorms</i>.  These number representations
+were developed to remedy the problem of a gap among representable
+FP numbers near zero.  For example, the smallest positive number is
+x = 1.00... · 2<sup>-127</sup>, and the second smallest positive
+number is y = 1.001<sub>2</sub> · 2<sup>-127</sup> = 2<sup>-127</sup> +
+2<sup>-150</sup>.  This implies that the gap between zero and x is
+2<sup>-127</sup> and that the gap between x and y is 2<sup>-150</sup>,
+as shown in Figure 3.22a.  
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-SciNotation-denorms1.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="CDA-arith_files/MIPS-SciNotation-denorms2.gif"><br><br>(a)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(b)<br><br><b>Figure 3.22.</b> Denorms: (a) Gap between zero and 2<sup>-127</sup>, and (b) Denorms close this gap - adapted from [Maf01].</p>
+
+<p align="JUSTIFY">This situation can be remedied by omitting the leading one
+from the significand, thereby <i>denormalizing</i> the FP representation.  
+The smallest positive number is now the denorm 0.0...1 · 2<sup>-127</sup>
+= 2<sup>-150</sup>, and the second smallest positive number is
+2<sup>-149</sup>.
+
+</p><h4>3.4.4. FP Arithmetic</h4>
+
+<p align="JUSTIFY">Applying mathematical operations to real numbers
+implies that some error will occur due to the floating point
+representation.  This is due to the fact that FP addition and
+subtraction are not associative, because the FP representation is only
+an approximation to a real number.
+
+</p><blockquote>
+<p align="JUSTIFY"><b>Example 1.</b> Using decimal numbers for clarity,
+let x = -1.5 · 10<sup>38</sup>, y = 1.5 · 10<sup>38</sup>, and
+z = 1.0.  With floating point representation, we have:
+
+</p><p align="CENTER">x + (y + z) = -1.5 · 10<sup>38</sup> + (1.5 · 10<sup>38</sup> + 1.0) = 0.0 </p>
+<p>and
+</p><p align="CENTER">
+(x + y) + z = (-1.5 · 10<sup>38</sup> + 1.5 · 10<sup>38</sup>) + 1.0 = 1.0 </p>
+
+<p align="JUSTIFY">The difference occurs because the value 1.0 cannot be
+distinguished in the significand of 1.5 · 10<sup>38</sup> due to
+insufficient precision (number of digits) of the significand in the FP
+representation of these numbers (IEEE 754 assumed).
+</p></blockquote>
+
+<p align="JUSTIFY">The preceding example leads to several implementational
+issues in FP arithmetic.  Firstly, <i>rounding</i> occurs when performing
+math on real numbers, due to lack of sufficient precision.  For example,
+when multiplying two N-bit numbers, a 2N-bit product results.  Since only
+the upper N bits of the 2N bit product are retained, the lower N bits are
+<i>truncated</i>.  This is also called <i>rounding toward zero</i>.  
+
+</p><p align="JUSTIFY">Another type of rounding is called <i>rounding to
+infinity</i>.  Here, if rounding toward +infinity, then we always
+round up.  For example, 2.001 is rounded up to 3, -2.001 is rounded up
+to 2.  Conversely, if rounding toward -infinity, then we always round
+down.  For example, 1.999 is rounded down to 1, -1.999 is rounded down
+to -2.  There is a more familiar technique, for example, where 3.7 is
+rounded to 4, and 3.1 is rounded to 3.  In this case, we resolve
+rounding from <i>n</i>.5 to the nearest even number, e.g.,
+3.5 is rounded to 4, and -2.5 is rounded to 2.
+
+</p><p align="JUSTIFY">A second implementational issue in FP arithmetic is
+addition and subtraction of numbers that have nonzero significands and
+exponents.  Unlike integer addition, we can't just add the significands.
+Instead, one must:
+
+</p><ol><p></p><li>Denormalize the operands and shift one of the operands to
+           make the exponents of both numbers equal (we denote the
+           exponent by E).
+
+<p>    </p></li><li>Add or subtract the significands to get the resulting significand.
+
+<p>    </p></li><li>Normalize the resulting significand and change E to
+           reflect any shifts incurred by normalization.
+</li></ol>
+
+<p align="JUSTIFY">We will review several approaches to floating point
+operations in MIPS in the following section.
+
+<a name="Sec3.5"></a>
+</p><h3>3.5. Floating Point in MIPS</h3>
+
+<p><a href="http://www.cise.ufl.edu/%7Emssz/CompOrg/PatHen-Readings.html#ExSec3.5"><b>Reading Assignments and
+Exercises</b></a>
+
+</p><p align="JUSTIFY">The MIPS FP architecture uses separate floating point
+insturctions for IEEE 754 single and double precision.  Single
+precision uses <code>add.s</code>, <code>sub.s</code>,
+<code>mul.s</code>, and <code>div.s</code>, whereas double precision
+instructions are <code>add.d</code>, <code>sub.d</code>,
+<code>mul.d</code>, and <code>div.d</code>.  These instructions are
+much more complicated than their integer counterparts.  Problems with
+implementing FP arithmetic include inefficiencies in having different
+instructions that take significantly different times to execute (e.g.,
+division versus addition).  Also, FP operations require much more
+hardware than integer operations.
+
+</p><p align="JUSTIFY">Thus, in the spirit of RISC design philosophy, we
+note that (a) a particular datum is not likely to change its datatype
+within a program, and (b) some types of programs do not require FP
+computation.  Thus, in 1990, the MIPS designers decided to separate
+the FP computations from the remainder of the ALU operations, and use
+a separate chip for FP (called the <i>coprocessor</i>).  A MIPS
+coprocessor contains 32 32-bit registers designated as
+<code>$f0</code>, <code>$f1</code>, ..., etc. Most of these registers
+are specified in the <code>.s</code> and <code>.d</code> instructions.
+Double precision operands are stored in <i>register pairs</i> (e.g.,
+<code>$f0,$f1</code> up to <code>$f30,$f31</code>).  
+
+</p><p align="JUSTIFY">The CPU thus handles all the regular computation,
+while the coprocessor handles the floating point operations.  Special
+instructions are required to move data between the coprocessor(s) and
+CPU (e.g., <code>mfc0</code>, <code>mtc0</code>, <code>mfc0</code>,
+<code>mtc0</code>, etc.), where c<i>n</i> refers to coprocessor
+#<i>n</i>.  Similarly, special I/O operations are required to load and
+store data between the coprocessor and memory (e.g.,
+<code>lwc0</code>, <code>swc0</code>, <code>lwc1</code>,
+<code>swc1</code>, etc.)
+
+</p><p align="JUSTIFY">FP coprocessors require very complex hardware, as shown
+in Figure 3.23, which portrays only the hardware required for addition.
+
+</p><p align="CENTER"><img src="CDA-arith_files/Figure3_006.gif"><br><br><b>Figure 3.23.</b> MIPS
+ALU supporting floating point addition, adapted
+from [Maf01].</p>
+
+<p align="JUSTIFY">The use of floating point operations in MIPS assembly
+code is described in the following simple example, which implements a
+C program designed to convert Fahrenheit temperatures to Celsius.
+
+</p><p align="CENTER"><img src="CDA-arith_files/MIPS-FP-ALU-Ex1.gif"></p>
+
+<p align="JUSTIFY">Here, we assume that there is a coprocessor c1
+connected to the CPU.  The values 5.0 and 9.0 are respectively loaded
+into registers <code>$f16</code> and <code>$f18</code> using the
+<code>lwc1</code> instruction with the global pointer as base address
+and the variables <code>const5</code> and <code>const9</code> as
+offsets.  The single precision division operation puts the quotient of
+5.0/9.0 into <code>$f16</code>, and the remainder of the computation
+is straightforward.  As in all MIPS procedure calls, the
+<code>jr</code> instruction returns control to the address stored in
+the <code>$ra</code> register.
+
+</p><p align="JUSTIFY">
+
+</p></blockquote>
+
+<p></p><hr><p>
+</p><blockquote>
+<h3>References</h3>
+
+<p align="JUSTIFY">[Maf01] Mafla, E. <i>Course Notes, CDA3101</i>, at URL <code>http://www.cise.ufl.edu/~emafla/</code> (as-of 11 Apr 2001).
+
+</p><p align="JUSTIFY">[Pat98] Patterson, D.A. and
+J.L. Hennesey. <i>Computer Organization and Design: The
+Hardware/Software Interface</i>, Second Edition, San Francisco, CA:
+Morgan Kaufman (1998).
+
+
+</p></blockquote>
+
+<p></p><hr>
+
+
+</body></html>

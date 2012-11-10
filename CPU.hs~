@@ -1,0 +1,12 @@
+module CPU where
+
+import Memory
+import qualified Control.Monad.State as S
+
+type Address = Int
+
+-- Two's complement arithmetic addition
+add :: Address -> Address -> Address -> S.State Memory ()
+add rd rs1 rs2 = 	do 
+					put result rd
+	where 

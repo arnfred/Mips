@@ -1,0 +1,28 @@
+module Execute where
+
+import Memory
+import qualified Control.Monad.State as S
+
+execute :: MemState
+execute = do
+		old		<- getPc	-- Get old Counter
+		runInstruction old	-- run instruction
+		new		<- getPc	-- Get new Counter
+		-- Compare the counters to see if we proceed to next line
+		next	<- return $ if (old == new) then (new+1) else new
+		len		<- getLength
+		-- Check if we are at end of file
+		if (next > len) 
+			then return () 	-- If we are at end of file, exit
+			else execute	-- Else, execute again
+
+	where	
+		numberOf		= snd . bounds
+
+
+runInstruction :: Int -> MemState
+runInstruction n = do
+		instruction <- getInstruction n
+		instruction
+					
+		

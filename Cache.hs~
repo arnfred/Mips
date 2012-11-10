@@ -1,0 +1,20 @@
+module Cache where
+import Data.Array
+
+type Cache = Array Index Bits
+
+writeMemory :: Cache -> Register -> Bits -> Registers
+writeMemory m a l
+	| a == 0	= m
+	| otherwise	= m//[(a,l)]
+
+sanitize :: Bits -> Bits
+sanitize = padL . check
+
+check :: Bits -> Bits
+check b
+	| check b	= b
+	| otherwise	= error "The bits " ++ b ++ " contains illegal characters (only '0' and '1' are allowed)" 
+	where
+		check b	= ((length b) <= 32) && fi b
+		fi		= and . map (`elem` ['0','1'])
